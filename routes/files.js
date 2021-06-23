@@ -48,17 +48,19 @@ router.post("/send", async (req, res) => {
   if (!uuid || !emailTo || !emailFrom)
     return res.status(422).send({ error: "All fields are required" });
   const file = await File.findOne({ uuid: uuid });
-  if (file.sender) {
-    return res.status(422).send({ error: "Email allready sent" });
-  }
+  // if (file.sender) {
+  //   return res.status(422).send({ error: "Email allready sent" });
+  // }
   //adding the sented info in the database
   file.sender = emailFrom;
   file.receiver = emailTo;
-  const response = await file.save();
+  await file.save();
 
   // send email
+
   const sendEmail = require("../services/emailService");
   sendEmail({
+    res,
     from: emailFrom,
     to: emailTo,
     subject: "ShareNow() file sharing",
@@ -66,11 +68,11 @@ router.post("/send", async (req, res) => {
     html: require("../services/emailTemplate")({
       emailFrom,
       downloadLink: `${process.env.APP_BASE_URL}/files/${file.uuid}`,
+      size: parseInt(file.size / 1000) + "KB",
+      expires: "24 hours",
     }),
-    size: parseInt(file.size / 1000) + "KB",
-    expires: "24 hours",
   });
-  return res.send({success:true})
+  
 });
 
 module.exports = router;
